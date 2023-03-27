@@ -18,28 +18,46 @@ pip install quorum_mininode_py
 ### Usage
 
 ```python3
-
-from quorum_data_py import FeedData as feed
 from quorum_mininode_py import MiniNode
 
 seed_url = 'rum://seed?v=1&e=0&n=0&c=apzmbMVtMy6J0sQKwhF...2MwHjpA2E'
 pvtkey = "0xd4e9ddc19ec5b...d8c"
-agepvtkey = 'AGE-SECRET-KEY-15RSH3AXCVY...NSLWJZAP'
 
-bot = MiniNode(seed_url,pvtkey,agepvtkey)
+bot = MiniNode(seed_url,pvtkey)
 
 # post content to rum group chain
-data = feed.new_post(content="hello world!")
+data = {
+    "type": "Create",
+    "object": {
+        "type": "Note",
+        "content": "Hello world! Hello quorum!",
+        "id": "a1d92233-3801-4295-a3cd-0e594385acc6",
+    },
+}
+
 resp = bot.api.post_content(data)
+print(resp)
+
+# like a post
+data = {
+    "type": "Like",
+    "object": {"type": "Note", "id": "a1d92233-3801-4295-a3cd-0e594385acc6"},
+}
+
+resp = bot.api.post_content(data)
+print(resp)
 
 # get content from rum group chain
-trxs = bot.api.get_content(num=3, reverse=True)
+trxs = bot.api.get_content(num=2, reverse=True)
+print(trxs)
+
 
 ```
 
 ### Source
 
 - quorum fullnode sdk for python: https://github.com/liujuanjuan1984/quorum-fullnode-py 
+- quorum mininode sdk for python: https://github.com/liujuanjuan1984/quorum-mininode-py 
 - quorum lightnode sdk for python: https://github.com/zhangwm404/quorum-lightnode-py 
 - quorum data module for python: https://github.com/liujuanjuan1984/quorum-data-py
 

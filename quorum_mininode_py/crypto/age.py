@@ -3,8 +3,11 @@ import os
 
 from pyrage import decrypt, encrypt, passphrase, x25519
 
+logger = logging.getLogger(__name__)
 
-def age_encrypt(recipients: list[x25519.Recipient], data: bytes) -> bytes:
+
+def age_encrypt(recipients: list, data: bytes) -> bytes:
+    """recipients list of x25519.Recipient"""
     if not data:
         assert "invalid data"
     if not recipients:

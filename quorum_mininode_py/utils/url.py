@@ -64,14 +64,6 @@ def _decode_pubkey(b64str: str) -> str:
     return pubkey
 
 
-def parse_chain_url(url: str):
-    u = urlparse(url)
-    baseurl = f"{u.scheme}://{u.hostname}:{u.port}"
-    query = parse_qs(u.query)
-    jwt = _get_value_from_query(query, "jwt")
-    return ChainURL(baseurl=baseurl, jwt=jwt)
-
-
 def decode_seed_url(seedurl: str) -> Dict:
     """
     seedurl (str):
@@ -98,14 +90,6 @@ def decode_seed_url(seedurl: str) -> Dict:
             raise ValueError(f"key:{key}, value:{value}, is not 1:1, please check.")
 
     encryption_type = "public" if query_dict.get("e") == "0" else "private"
-
-    """ 
-    chain_urls = []
-    urls = list(set(query_dict.get("u").split("|")))
-    for url in urls:
-        item = parse_chain_url(url)
-        chain_urls.append(item)
-    """
 
     info = {
         "group_id": _decode_uuid(query_dict.get("g")),

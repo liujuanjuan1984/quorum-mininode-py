@@ -1,15 +1,13 @@
 import logging
+from dataclasses import dataclass
 from urllib import parse
 
 from quorum_mininode_py import utils
-from quorum_mininode_py._requests import HttpRequest
 from quorum_mininode_py.api import LightNodeAPI
+from quorum_mininode_py.client._http import HttpRequest
 from quorum_mininode_py.crypto import account as Account
 
 logger = logging.getLogger(__name__)
-
-
-from dataclasses import dataclass
 
 
 @dataclass
@@ -46,23 +44,28 @@ class RumAccount:
     age_pvtkey: str = None
     age_pubkey: str = None
 
-    def __init__(self, pvtkey: str = None, age_pvtkey: str = None):
+    def __init__(
+        self, pvtkey: str = None, age_pvtkey: str = None, encryption_type: str = None
+    ):
         self.pvtkey = pvtkey or Account.create_private_key()
         self.pubkey = Account.private_key_to_pubkey(self.pvtkey)
         self.address = Account.public_key_to_address(self.pubkey)
 
-        if not age_pvtkey:
-            self.age_pvtkey, self.age_pubkey = Account.create_age_keypair()
-        else:
+        if age_pvtkey:
             self.age_pvtkey = age_pvtkey
             self.age_pubkey = Account.age_pvtkey_to_pubkey(age_pvtkey)
+        elif (encryption_type or "").upper() == "PRIVATE":
+            self.age_pvtkey, self.age_pubkey = Account.create_age_keypair()
+        else:
+            self.age_pvtkey = None
+            self.age_pubkey = None
 
 
 class MiniNode:
     """python for quorum lightnode, without datastore, one MiniNode client for one group"""
 
     def __init__(self, seedurl: str, pvtkey=None, age_pvtkey=None):
-        self.account = RumAccount(pvtkey, age_pvtkey)
         self.group = RumGroup(seedurl)
-        self.http = HttpRequest(api_base=self.group.chainapi, jwt_token=self.group.jwt)
-        self.api = LightNodeAPI(self.http, self.group, self.account)
+        self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
+        http = HttpRequest(self.group.chainapi, self.group.jwt)
+        self.api = LightNodeAPI(http, self.group, self.account)

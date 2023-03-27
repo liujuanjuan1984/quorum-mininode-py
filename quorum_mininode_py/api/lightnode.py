@@ -18,6 +18,7 @@ class LightNodeAPI(BaseAPI):
         self,
         data: dict,
         timestamp: Union[str, int, float, None] = None,
+        trx_id: str = None,
     ):
         """
         data:dict
@@ -39,6 +40,7 @@ class LightNodeAPI(BaseAPI):
             timestamp,
             check_private_key(self._account.pvtkey),
             age_pubkey,
+            trx_id,
         )
         return super()._post_content(trx)
 

@@ -2,12 +2,12 @@ import base64
 import hashlib
 import json
 import logging
-import os
 import time
 import uuid
 from typing import Any, Dict, Union
 
 import eth_keys
+from pyrage import x25519
 
 from quorum_mininode_py.crypto.account import private_key_to_pubkey
 from quorum_mininode_py.crypto.aes import aes_decrypt, aes_encrypt
@@ -15,7 +15,11 @@ from quorum_mininode_py.crypto.age import age_decrypt, age_encrypt
 from quorum_mininode_py.proto import pbQuorum
 
 logger = logging.getLogger(__name__)
-nonce = 1
+
+
+def age_privkey_from_str(key: str) -> x25519.Identity:
+    identity = x25519.Identity.from_str(key)
+    return identity
 
 
 def check_timestamp(timestamp: Union[str, int, float, None] = None):
@@ -35,7 +39,7 @@ def check_timestamp(timestamp: Union[str, int, float, None] = None):
         return int(time.time() * 1e9)
 
 
-def pack_obj(obj: dict[str, str], aes_key) -> str:
+def pack_obj(obj: Dict[str, str], aes_key) -> str:
     """pack obj with group chiperkey and return a string"""
     obj_bytes = json.dumps(obj).encode()
     obj_encrypted = aes_encrypt(aes_key, obj_bytes)
@@ -46,10 +50,11 @@ def pack_obj(obj: dict[str, str], aes_key) -> str:
 def trx_encrypt(
     group_id: str,
     aes_key: bytes,
-    data: dict[str, Any] = None,
+    data: Dict[str, Any] = None,
     timestamp=None,
     private_key: bytes = None,
     age_pubkey=None,
+    trx_id=None,
 ) -> Dict[str, str]:
     """trx encrypt"""
     # pylint: disable=W,E,R
@@ -65,16 +70,13 @@ def trx_encrypt(
     sender_pubkey = private_key_to_pubkey(private_key)
 
     timestamp = check_timestamp(timestamp)
-    global nonce
-    nonce += 1
     trx = {
-        "TrxId": str(uuid.uuid4()),
+        "TrxId": trx_id or str(uuid.uuid4()),
         "GroupId": group_id,
         "Data": encrypted,
         "TimeStamp": timestamp,
         "Version": "2.0.0",
         "Expired": timestamp + int(30 * 1e9),
-        "Nonce": nonce,
         "SenderPubkey": sender_pubkey,
     }
 
@@ -119,7 +121,7 @@ def decode_public_trx_data(aes_key: bytes, data: str):
 def decode_private_trx_data(age_key: str, data: str):
     trx_data = _check_data(data)
     trx_enc_bytes = base64.b64decode(trx_data)
-    age_key = age_privkey_from_str(age_priv_key)
+    age_key = age_privkey_from_str(age_key)
     trx_bytes = age_decrypt(age_key, trx_enc_bytes)
     return trx_bytes
 

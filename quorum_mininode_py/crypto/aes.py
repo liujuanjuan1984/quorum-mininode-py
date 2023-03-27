@@ -1,6 +1,9 @@
+import logging
 import os
 
 from Crypto.Cipher import AES
+
+logger = logging.getLogger(__name__)
 
 
 def aes_encrypt(key: bytes, data: bytes) -> bytes:

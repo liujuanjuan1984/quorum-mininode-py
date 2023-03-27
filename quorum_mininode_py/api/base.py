@@ -1,6 +1,6 @@
 import logging
 
-from quorum_mininode_py._requests import HttpRequest
+from quorum_mininode_py.client._http import HttpRequest
 from quorum_mininode_py.crypto import trx as crypto
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class BaseAPI:
     def _get_chaindata(self, obj: dict, req_type: str):
         """base api of get chaindata"""
         payload = {
-            "Req": crypto.pack_obj(obj),
+            "Req": crypto.pack_obj(obj, self._group.aes_key),
             "ReqType": req_type,
         }
         return self._post(f"/node/getchaindata/{self.group_id}", payload)
