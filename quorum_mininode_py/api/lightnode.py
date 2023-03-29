@@ -67,86 +67,70 @@ class LightNodeAPI(BaseAPI):
         senders: list = None,
     ):
         """get content"""
-        # TODO:如果把 senders 传入 quorum，会导致拿不到数据，或数据容易中断，所以实现时拿了全部数据，再筛选senders
-
         params = {
-            "group_id": self.group_id,
             "reverse": "true" if reverse is True else "false",
             "num": num,
             "include_start_trx": "true" if include_start_trx is True else "false",
-            "senders": [],
         }
         if start_trx:
             params["start_trx"] = start_trx
-        get_group_ctn_item = {
-            "Req": params,
-        }
+        if senders:
+            params["senders"] = senders
 
-        get_group_ctn_item_str = json.dumps(get_group_ctn_item)
-        encrypted = aes_encrypt(self._group.aes_key, get_group_ctn_item_str.encode())
-        send_param = {
-            "Req": base64.b64encode(encrypted).decode(),
-        }
-
-        encypted_trxs = super()._get_content(send_param)
-        # chooce trxs:
-        if self._group.encryption_type == "public":
+        encypted_trxs = super()._get_content(params)
+        if self._group.encryption_type.lower() == "public":
             age_priv_key = None
         else:
             age_priv_key = self._account.age_privkey
 
-        try:
-            trxs = [
-                trx_decrypt(self._group.aes_key, age_priv_key, i) for i in encypted_trxs
-            ]
-            if senders:
-                trxs = [i for i in trxs if i["Publisher"] in senders]
-        except Exception as err:
-            logger.warning("get_content error: %s", err)
-            trxs = encypted_trxs
+        trxs = [
+            trx_decrypt(self._group.aes_key, age_priv_key, i) for i in encypted_trxs
+        ]
         return trxs
 
     def get_group_info(self):
         """get group info"""
-        obj = {"GroupId": self.group_id}
-        return super()._get_chaindata(obj, "group_info")
+        return super()._get_group()
+
+    def get_encryptpubkeys(self):
+        """get encrypt pubkeys"""
+        return super()._get_encryptpubkeys()
 
     def get_auth_type(self, trx_type: str):
         """get auth type of trx_type"""
-        obj = {"GroupId": self.group_id, "TrxType": trx_type}
-        return super()._get_chaindata(obj, "auth_type")
+        trx_type = trx_type.upper()
+        if trx_type not in ["POST", "ANNOUNCE", "REQ_BLOCK"]:
+            raise ValueError("trx_type must be one of [POST ANNOUNCE REQ_BLOCK]")
+        return super()._get_auth_type(trx_type)
 
     def get_auth_allowlist(self):
         """get allowlist"""
-        obj = {"GroupId": self.group_id}
-        return super()._get_chaindata(obj, "auth_allowlist")
+        return super()._get_alwlist()
 
     def get_auth_denylist(self):
         """get denylist"""
-        obj = {"GroupId": self.group_id}
-        return super()._get_chaindata(obj, "auth_denylist")
+        return super()._get_denylist()
 
     def get_appconfig_keylist(self):
         """get appconfig keylist"""
-        obj = {"GroupId": self.group_id}
-        return super()._get_chaindata(obj, "appconfig_listlist")
+        return super()._get_appconfig_keylist()
 
     def get_appconfig_key(self, key: str):
         """get appconfig key value by keyname"""
-        obj = {"GroupId": self.group_id, "Key": key}
-        return super()._get_chaindata(obj, "appconfig_item_bykey")
+        return super()._get_appconfig_key(key)
 
-    def get_group_producer(self):
+    def get_producers(self):
         """get group producers"""
-        obj = {"GroupId": self.group_id}
-        return super()._get_chaindata(obj, "group_producer")
+        return super()._get_producers()
 
     def get_announced_producer(self):
         """get announced producer"""
-        obj = {"GroupId": self.group_id}
-        return super()._get_chaindata(obj, "announced_producer")
+        return super()._get_announced_producer()
 
-    def get_announced_user(self, pubkey: str):
-        """get announced user info by pubkey"""
-        obj = {"GroupId": self.group_id, "SignPubkey": pubkey}
-        return super()._get_chaindata(obj, "announced_user")
+    def get_announced_user(self):
+        """get announced user"""
+        return super()._get_announced_user()
+
+    def announce(self):  # TODO: to finish.
+        """post annonce to group"""
+        return super()._post_announce(payload)

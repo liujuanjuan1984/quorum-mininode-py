@@ -23,20 +23,20 @@ def age_privkey_from_str(key: str) -> x25519.Identity:
 
 
 def check_timestamp(timestamp: Union[str, int, float, None] = None):
-    """check timestamp"""
+    """check timestamp, make sure it is a 13 bit int"""
     if timestamp is None:
-        return int(time.time() * 1e9)
+        return int(time.time() * 1e3)
     try:
         timestamp = str(timestamp).replace(".", "")
-        if len(timestamp) > 19:
-            timestamp = timestamp[:19]
-        elif len(timestamp) < 19:
-            timestamp += "0" * (19 - len(timestamp))
+        if len(timestamp) > 13:
+            timestamp = timestamp[:13]
+        elif len(timestamp) < 13:
+            timestamp += "0" * (13 - len(timestamp))
         timestamp = int(timestamp)
         return timestamp
     except Exception as err:
         logger.info("timestamp error: %s", err)
-        return int(time.time() * 1e9)
+        return int(time.time() * 1e3)
 
 
 def pack_obj(obj: Dict[str, str], aes_key) -> str:
@@ -76,7 +76,7 @@ def trx_encrypt(
         "Data": encrypted,
         "TimeStamp": timestamp,
         "Version": "2.0.0",
-        "Expired": timestamp + int(30 * 1e9),
+        "Expired": timestamp + int(30 * 1e3),
         "SenderPubkey": sender_pubkey,
     }
 
@@ -86,20 +86,20 @@ def trx_encrypt(
     signature = pvtkey.sign_msg_hash(trx_hash).to_bytes()
     trx["SenderSign"] = signature
 
-    trx_pb = pbQuorum.Trx(**trx)
-    trx_json_str = json.dumps(
-        {
-            "TrxBytes": base64.b64encode(trx_pb.SerializeToString()).decode(),
-        }
-    )
+    for k, v in trx.items():
+        if isinstance(v, bytes):
+            trx[k] = base64.b64encode(v).decode()
 
-    enc_trx_json = aes_encrypt(aes_key, trx_json_str.encode())
-
-    send_trx_obj = {
-        "GroupId": group_id,
-        "TrxItem": base64.b64encode(enc_trx_json).decode(),
+    trx = {
+        "trx_id": trx["TrxId"],
+        "data": trx["Data"],
+        "timestamp": trx["TimeStamp"],
+        "version": trx["Version"],
+        "expired": trx["Expired"],
+        "sender_pubkey": trx["SenderPubkey"],
+        "sender_sign": trx["SenderSign"],
     }
-    return send_trx_obj
+    return trx
 
 
 def _check_data(data):
