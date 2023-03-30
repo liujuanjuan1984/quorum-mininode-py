@@ -1,3 +1,4 @@
+import json
 import logging
 from urllib.parse import urlencode
 
@@ -26,9 +27,11 @@ class BaseAPI:
     def _get_trx(self, trx_id: str):
         return self._get(f"/trx/{self.group_id}/{trx_id}")
 
-    def _get_content(self, payload: dict = None):
-        if payload:
-            query_string = urlencode(payload)
+    def _get_content(self, payload: dict):
+        for k, v in payload.items():
+            if isinstance(v, bool):
+                payload[k] = json.dumps(v)
+        query_string = urlencode(payload, doseq=True)
         return self._get(f"/node/{self.group_id}/groupctn?{query_string}")
 
     def _post_content(self, payload: dict):

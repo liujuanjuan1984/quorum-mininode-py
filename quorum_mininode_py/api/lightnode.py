@@ -66,12 +66,12 @@ class LightNodeAPI(BaseAPI):
     ):
         """get content"""
         params = {
-            "reverse": "true" if reverse is True else "false",
+            "reverse": reverse,
             "num": num,
-            "include_start_trx": "true" if include_start_trx is True else "false",
         }
         if start_trx:
             params["start_trx"] = start_trx
+            params["include_start_trx"] = include_start_trx
         if senders:
             params["senders"] = senders
 
@@ -81,9 +81,13 @@ class LightNodeAPI(BaseAPI):
         else:
             age_priv_key = self._account.age_privkey
 
-        trxs = [
-            trx_decrypt(self._group.aes_key, age_priv_key, i) for i in encypted_trxs
-        ]
+        trxs = []
+        for i in encypted_trxs:
+            try:
+                i = trx_decrypt(self._group.aes_key, age_priv_key, i)
+            except Exception as err:
+                logger.error(err)
+            trxs.append(i)
         return trxs
 
     def get_group_info(self):
