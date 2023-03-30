@@ -57,6 +57,7 @@ def trx_encrypt(
     trx_id=None,
 ) -> Dict[str, str]:
     """trx encrypt"""
+    # pylint: disable=too-many-locals
 
     data = json.dumps(data).encode()
     encrypted = None
@@ -78,7 +79,7 @@ def trx_encrypt(
         "SenderPubkey": sender_pubkey,
     }
 
-    trx_without_sign_pb = pbQuorum.Trx(**trx)
+    trx_without_sign_pb = pbQuorum.Trx(**trx)  # pylint: disable=no-member
     trx_without_sign_pb_bytes = trx_without_sign_pb.SerializeToString()
     trx_hash = hashlib.sha256(trx_without_sign_pb_bytes).digest()
     signature = pvtkey.sign_msg_hash(trx_hash).to_bytes()
@@ -91,7 +92,7 @@ def trx_encrypt(
     trx = {
         "trx_id": trx["TrxId"],
         "data": trx["Data"],
-        "timestamp": trx["TimeStamp"],
+        "timestamp": str(trx["TimeStamp"]),
         "version": trx["Version"],
         "sender_pubkey": trx["SenderPubkey"],
         "sender_sign": trx["SenderSign"],

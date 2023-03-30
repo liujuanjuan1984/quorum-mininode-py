@@ -2,7 +2,6 @@ import logging
 from urllib.parse import urlencode
 
 from quorum_mininode_py.client._http import HttpRequest
-from quorum_mininode_py.crypto import trx as crypto
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,7 @@
 [MASTER]
+ignore = quorum_pb2.py
+ignored-modules = pyrage
+
 disable=
     C0114, # missing-module-docstring
     C0115, # missing-class-docstring

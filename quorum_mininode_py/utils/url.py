@@ -1,8 +1,7 @@
 import base64
 import hashlib
 import uuid
-from typing import Union
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 from google.protobuf import json_format
 
@@ -68,11 +67,10 @@ def decode_seed_url(seed_url: str):
     if not seed_url.startswith("rum://seed?v=1"):
         raise ValueError("seed_url must start with rum://seed?")
 
-    u = urlparse(seed_url)
+    parsed = urlparse(seed_url)
+    query = parse_qs(parsed.query)
 
-    query = parse_qs(u.query)
     group_id = extract_uuid_from_query(query, "g")
-
     genesis_block = pbQuorum.Block(  # pylint: disable=no-member
         Epoch=0,
         GroupId=group_id,
@@ -109,4 +107,32 @@ def decode_seed_url(seed_url: str):
 
     seed["genesis_block"] = json_format.MessageToDict(seed["genesis_block"])
 
-    return dict(seed=seed, chain_urls=chain_urls)
+    # get clean seed_url without chain_url
+    query["u"] = [""]
+    new_query_str = urlencode(query, doseq=True)
+    updated_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query_str}"
+
+    return dict(seed=seed, chain_urls=chain_urls, seed_url=updated_url)
+
+
+def update_seed_url(seed_url: str, *chain_urls: list):
+    """
+    seed_url (str):
+    the seed url of rum group which shared by rum fullnode,
+    with host:post?jwt=xxx to connect
+    chain_urls (list):
+    the chain urls of rum group which shared by rum fullnode,
+    with host:post?jwt=xxx to connect
+    """
+    decoded = decode_seed_url(seed_url)
+    for chain_url in chain_urls:
+        if chain_url not in decoded["chain_urls"]:
+            decoded["chain_urls"].append(chain_url)
+
+    chain_url_str = ""
+    for url in decoded["chain_urls"]:
+        chain_url_str += f"{url['baseurl']}?jwt={url['jwt']}|"
+    if chain_url_str.endswith("|"):
+        chain_url_str = chain_url_str[:-1]
+    updated_url = decoded["seed_url"] + "&u=" + chain_url_str
+    return updated_url

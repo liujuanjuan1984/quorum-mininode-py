@@ -8,9 +8,9 @@ from quorum_mininode_py.crypto.account import (
     private_key_to_pubkey,
     public_key_to_address,
 )
-from quorum_mininode_py.utils import decode_seed_url
+from quorum_mininode_py.utils import decode_seed_url, update_seed_url
 
-__version__ = "1.1.6"
+__version__ = "1.1.8"
 __author__ = "liujuanjuan1984, zhangwm404"
 
 # Set default logging handler to avoid "No handler found" warnings.

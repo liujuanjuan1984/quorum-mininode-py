@@ -1,12 +1,10 @@
-import base64
-import json
 import logging
 import time
 from typing import Union
 
 from quorum_mininode_py.api.base import BaseAPI
 from quorum_mininode_py.crypto.account import check_private_key
-from quorum_mininode_py.crypto.trx import aes_encrypt, trx_decrypt, trx_encrypt
+from quorum_mininode_py.crypto.trx import trx_decrypt, trx_encrypt
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +129,6 @@ class LightNodeAPI(BaseAPI):
         """get announced user"""
         return super()._get_announced_user()
 
-    def announce(self):  # TODO: to finish.
+    def announce(self, payload: dict):  # TODO: to finish.
         """post annonce to group"""
         return super()._post_announce(payload)

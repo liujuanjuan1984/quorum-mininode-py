@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 def age_encrypt(recipients: list, data: bytes) -> bytes:
     """recipients list of x25519.Recipient"""
     if not data:
-        assert "invalid data"
+        raise ValueError("invalid data")
     if not recipients:
-        assert "invalid recipients"
+        raise ValueError("invalid recipients")
 
     _recipients = []
     for item in recipients:
