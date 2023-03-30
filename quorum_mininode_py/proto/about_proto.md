@@ -1,5 +1,5 @@
 
-quorum.proto are merged from the .proto files from url:  https://github.com/rumsystem/rumchaindata/pkg/pb/
+quorum.proto are merged from the .proto files from url:  https://github.com/rumsystem/quorum/blob/main/pkg/pb/chain.proto
 
 
 ```bash

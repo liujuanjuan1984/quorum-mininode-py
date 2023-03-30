@@ -2,6 +2,8 @@ import logging
 from dataclasses import dataclass
 from urllib import parse
 
+import requests
+
 from quorum_mininode_py import utils
 from quorum_mininode_py.api import LightNodeAPI
 from quorum_mininode_py.client._http import HttpRequest
@@ -12,28 +14,22 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class RumGroup:
+    seed: dict = None
+    seed_url: str = None
     group_id: str = None
     aes_key: str = None
     encryption_type: str = None
-    chainapi = None
-    jwt = None
+    chain_urls: list = None
 
-    def __init__(self, seedurl):
-
-        info = utils.decode_seed_url(seedurl)
-        url = parse.urlparse(info["url"])
-        if not info["url"]:
-            raise ValueError("Invalid seedurl.")
-        jwt = parse.parse_qs(url.query)
-        if jwt:
-            jwt = jwt["jwt"][0]
-        else:
-            jwt = None
-        self.group_id = info["group_id"]
-        self.aes_key = bytes.fromhex(info["chiperkey"])
-        self.encryption_type = info["encryption_type"]
-        self.chainapi = f"{url.scheme}://{url.netloc}/api/v1"
-        self.jwt = jwt
+    def __init__(self, seed_url: str):
+        info = utils.decode_seed_url(seed_url)
+        seed = info["seed"]
+        self.seed = seed
+        self.seed_url = seed_url
+        self.group_id = seed["group_id"]
+        self.aes_key = bytes.fromhex(seed["cipher_key"])
+        self.encryption_type = seed["encryption_type"]
+        self.chain_urls = info["chain_urls"]
 
 
 @dataclass
@@ -64,8 +60,26 @@ class RumAccount:
 class MiniNode:
     """python for quorum lightnode, without datastore, one MiniNode client for one group"""
 
-    def __init__(self, seedurl: str, pvtkey=None, age_pvtkey=None):
-        self.group = RumGroup(seedurl)
+    def __init__(self, seed_url: str, pvtkey=None, age_pvtkey=None):
+        self.group = RumGroup(seed_url)
         self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
-        http = HttpRequest(self.group.chainapi, self.group.jwt)
+
+        chain_url = self.get_best_http(self.group.chain_urls)
+        http = HttpRequest(chain_url["baseurl"] + "/api/v1", chain_url["jwt"])
         self.api = LightNodeAPI(http, self.group, self.account)
+
+    def get_best_http(self, chain_urls):
+        headers = {"Content-Type": "application/json"}
+        best = None
+        for chain_url in chain_urls:
+            jwt = chain_url["jwt"]
+            headers.update({"Authorization": f"Bearer {jwt}"})
+            url = chain_url["baseurl"] + f"/api/v1/node/{self.group.group_id}/info"
+            try:
+                response = requests.get(url, headers=headers, timeout=5)
+                if response.status_code == 200:
+                    best = chain_url
+                    break
+            except Exception as e:
+                logger.warning("get_best_http error: %s", e)
+        return best

@@ -23,24 +23,24 @@ def age_privkey_from_str(key: str) -> x25519.Identity:
 
 
 def check_timestamp(timestamp: Union[str, int, float, None] = None):
-    """check timestamp, make sure it is a 13 bit int"""
+    """check timestamp, make sure it is a 19 bit int"""
     if timestamp is None:
-        return int(time.time() * 1e3)
+        return int(time.time() * 1e9)
     try:
         timestamp = str(timestamp).replace(".", "")
-        if len(timestamp) > 13:
-            timestamp = timestamp[:13]
-        elif len(timestamp) < 13:
-            timestamp += "0" * (13 - len(timestamp))
+        if len(timestamp) > 19:
+            timestamp = timestamp[:19]
+        elif len(timestamp) < 19:
+            timestamp += "0" * (19 - len(timestamp))
         timestamp = int(timestamp)
         return timestamp
     except Exception as err:
-        logger.info("timestamp error: %s", err)
-        return int(time.time() * 1e3)
+        logger.warning("timestamp error: %s", err)
+        return int(time.time() * 1e9)
 
 
 def pack_obj(obj: Dict[str, str], aes_key) -> str:
-    """pack obj with group chiperkey and return a string"""
+    """pack obj with group cipher_key and return a string"""
     obj_bytes = json.dumps(obj).encode()
     obj_encrypted = aes_encrypt(aes_key, obj_bytes)
     req = base64.b64encode(obj_encrypted).decode()
@@ -57,7 +57,6 @@ def trx_encrypt(
     trx_id=None,
 ) -> Dict[str, str]:
     """trx encrypt"""
-    # pylint: disable=W,E,R
 
     data = json.dumps(data).encode()
     encrypted = None

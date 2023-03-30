@@ -1,1 +1,1 @@
-from quorum_mininode_py.utils.url import decode_seed_url, join_url
+from quorum_mininode_py.utils.url import decode_seed_url

@@ -1,109 +1,112 @@
 import base64
-import json
-import logging
+import hashlib
 import uuid
-from typing import Dict, Optional
-from urllib import parse
+from typing import Union
+from urllib.parse import parse_qs, unquote, urlparse
 
-logger = logging.getLogger(__name__)
+from google.protobuf import json_format
 
-
-def join_url(
-    base: Optional[str] = None,
-    endpoint: Optional[str] = None,
-    is_quote: bool = False,
-    **query_params,
-) -> str:
-    """pack base and endpoint to url"""
-    # url = parse.urljoin(base, endpoint) if base else endpoint
-    url = ""
-    if base:
-        url = base
-    if endpoint:
-        url += endpoint
-
-    if query_params:
-        for key, value in query_params.items():
-            if isinstance(value, bool):
-                query_params[key] = json.dumps(value)
-        query_ = parse.urlencode(query_params)
-        if is_quote:
-            query_ = parse.quote(query_, safe="?&/")
-        return "?".join([url, query_])
-    return url
+from quorum_mininode_py.proto import pbQuorum
 
 
-def _decode_b64_urlsafe(b64str: str) -> bytes:
-    # 对 base64 字符串检查长度，并补位，转换为字节
+def urlsafe_b64decode(b64str: str) -> bytes:
     num = (4 - len(b64str) % 4) % 4
     b64byte = b64str.encode() + b"=" * num
     b64byte = base64.urlsafe_b64decode(b64byte)
     return b64byte
 
 
-def _decode_uuid(b64str: str) -> str:
-    b64byte = _decode_b64_urlsafe(b64str)
-    b64uuid = uuid.UUID(bytes=b64byte)
-    return str(b64uuid)
+def _get_value_from_query(query: dict, key: str) -> str:
+    val = query.get(key)
+    if not val:
+        raise KeyError(f"can not find key: {key} or value is empty")
+    if not isinstance(val, list):
+        raise ValueError("value is not a list")
+    return val[0]
 
 
-def _decode_timestamp(b64str: str) -> int:
-    b64byte = _decode_b64_urlsafe(b64str)
-    bigint = int.from_bytes(b64byte, "big")
-    return bigint
+def extract_uuid_from_query(query: dict, key: str) -> str:
+    val = _get_value_from_query(query, key)
+    b = urlsafe_b64decode(val)
+    return str(uuid.UUID(bytes=b))
 
 
-def _decode_cipher_key(b64str: str):
-    b64byte = _decode_b64_urlsafe(b64str)
-    return b64byte.hex()
+def extra_timestamp_from_query(query: dict, key: str) -> int:
+    val = _get_value_from_query(query, key)
+    t = urlsafe_b64decode(val)
+    timestamp = int.from_bytes(t, byteorder="big")
+    return timestamp
 
 
-def _decode_pubkey(b64str: str) -> str:
-    b64byte = _decode_b64_urlsafe(b64str)
-    pubkey = base64.standard_b64encode(b64byte).decode()
-    return pubkey
+def hash_block(block: pbQuorum.Block) -> bytes:  # pylint: disable=no-member
+    new_block = pbQuorum.Block()  # pylint: disable=no-member
+    new_block.CopyFrom(block)
+    new_block.BlockHash = b""
+    new_block.ProducerSign = b""
+    new_block_bytes = new_block.SerializeToString()
+    return hashlib.sha256(new_block_bytes).digest()
 
 
-def decode_seed_url(seedurl: str) -> Dict:
+def parse_chain_url(url: str):
+    u = urlparse(url)
+    baseurl = f"{u.scheme}://{u.hostname}:{u.port}"
+    query = parse_qs(u.query)
+    jwt = _get_value_from_query(query, "jwt")
+    return dict(baseurl=baseurl, jwt=jwt)
+
+
+def decode_seed_url(seed_url: str):
     """
-    seedurl (str):
+    seed_url (str):
     the seed url of rum group which shared by rum fullnode,
     with host:post?jwt=xxx to connect
     """
 
-    if not isinstance(seedurl, str):
-        raise TypeError("seedurl must be string type.")
+    if not isinstance(seed_url, str):
+        raise TypeError("seed_url must be string type.")
 
-    if not seedurl.startswith("rum://seed?"):
-        raise ValueError(
-            "invalid seedurl, must start with rum://seed?, shared by rum fullnode."
-        )
+    if not seed_url.startswith("rum://seed?v=1"):
+        raise ValueError("seed_url must start with rum://seed?")
 
-    # 由于 Python 的实现中，每个 key 的 value 都是 列表，所以做了下述处理
-    # TODO: 如果 u 参数的值有多个，该方法需升级
-    query_dict = {}
-    _q = parse.urlparse(seedurl).query
-    for key, value in parse.parse_qs(_q).items():
-        if len(value) == 1:
-            query_dict[key] = value[0]
-        else:
-            raise ValueError(f"key:{key}, value:{value}, is not 1:1, please check.")
+    u = urlparse(seed_url)
 
-    encryption_type = "public" if query_dict.get("e") == "0" else "private"
+    query = parse_qs(u.query)
+    group_id = extract_uuid_from_query(query, "g")
 
-    info = {
-        "group_id": _decode_uuid(query_dict.get("g")),
-        "group_name": query_dict.get("a"),
-        "app_key": query_dict.get("y"),
-        "owner": _decode_pubkey(query_dict.get("k")),
-        "chiperkey": _decode_cipher_key(query_dict.get("c")),
-        "encryption_type": encryption_type,
-        "url": query_dict.get("u"),
-        "timestamp": _decode_timestamp(query_dict.get("t")),
-        # "chain_urls": chain_urls,
-    }
-    try:
-        info["genesis_block_id"] = _decode_uuid(query_dict.get("b"))
-    except Exception as err:
-        logger.info(err)
-    return info
+    genesis_block = pbQuorum.Block(  # pylint: disable=no-member
+        Epoch=0,
+        GroupId=group_id,
+        PrevHash=None,
+        Trxs=None,
+    )
+    genesis_block.BlockHash = hash_block(genesis_block)
+    genesis_block.ProducerPubkey = _get_value_from_query(query, "k")
+    genesis_block.TimeStamp = extra_timestamp_from_query(query, "t")
+    genesis_block.BlockHash = hash_block(genesis_block)
+    genesis_block.ProducerSign = urlsafe_b64decode(_get_value_from_query(query, "s"))
+
+    consensus_type = "pos" if _get_value_from_query(query, "n") == "1" else "poa"
+    encryption_type = (
+        "public" if _get_value_from_query(query, "e") == "0" else "private"
+    )
+    seed = dict(
+        genesis_block=genesis_block,
+        group_id=group_id,
+        group_name=_get_value_from_query(query, "a"),
+        consensus_type=consensus_type,
+        encryption_type=encryption_type,
+        cipher_key=urlsafe_b64decode(_get_value_from_query(query, "c")).hex(),
+        owner_pubkey=genesis_block.ProducerPubkey,
+        signature=genesis_block.ProducerSign.hex(),
+        app_key=unquote(_get_value_from_query(query, "y")),
+    )
+
+    chain_urls = []
+    urls = list(set(_get_value_from_query(query, "u").split("|")))
+    for url in urls:
+        item = parse_chain_url(url)
+        chain_urls.append(item)
+
+    seed["genesis_block"] = json_format.MessageToDict(seed["genesis_block"])
+
+    return dict(seed=seed, chain_urls=chain_urls)
