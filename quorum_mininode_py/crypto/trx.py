@@ -76,7 +76,6 @@ def trx_encrypt(
         "Data": encrypted,
         "TimeStamp": timestamp,
         "Version": "2.0.0",
-        "Expired": timestamp + int(30 * 1e3),
         "SenderPubkey": sender_pubkey,
     }
 
@@ -95,7 +94,6 @@ def trx_encrypt(
         "data": trx["Data"],
         "timestamp": trx["TimeStamp"],
         "version": trx["Version"],
-        "expired": trx["Expired"],
         "sender_pubkey": trx["SenderPubkey"],
         "sender_sign": trx["SenderSign"],
     }
