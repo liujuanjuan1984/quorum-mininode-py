@@ -15,18 +15,9 @@ class LightNodeAPI(BaseAPI):
     def post_content(
         self,
         data: dict,
-        timestamp: Union[str, int, float, None] = None,
         trx_id: str = None,
     ):
-        """
-        data:dict
-        timestamp:2022-10-05 12:34
-        """
-        if timestamp and isinstance(timestamp, str):
-            timestamp = timestamp.replace("/", "-")[:16]
-            timestamp = time.mktime(time.strptime(timestamp, "%Y-%m-%d %H:%M"))
-        # 检查 group 的类型
-
+        """post content to group"""
         if self._group.encryption_type == "public":
             age_pubkey = None
         else:
@@ -35,7 +26,6 @@ class LightNodeAPI(BaseAPI):
             self.group_id,
             self._group.aes_key,
             data,
-            timestamp,
             check_private_key(self._account.pvtkey),
             age_pubkey,
             trx_id,

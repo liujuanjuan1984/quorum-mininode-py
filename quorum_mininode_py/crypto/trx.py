@@ -22,23 +22,6 @@ def age_privkey_from_str(key: str) -> x25519.Identity:
     return identity
 
 
-def check_timestamp(timestamp: Union[str, int, float, None] = None):
-    """check timestamp, make sure it is a 19 bit int"""
-    if timestamp is None:
-        return int(time.time() * 1e9)
-    try:
-        timestamp = str(timestamp).replace(".", "")
-        if len(timestamp) > 19:
-            timestamp = timestamp[:19]
-        elif len(timestamp) < 19:
-            timestamp += "0" * (19 - len(timestamp))
-        timestamp = int(timestamp)
-        return timestamp
-    except Exception as err:
-        logger.warning("timestamp error: %s", err)
-        return int(time.time() * 1e9)
-
-
 def pack_obj(obj: Dict[str, str], aes_key) -> str:
     """pack obj with group cipher_key and return a string"""
     obj_bytes = json.dumps(obj).encode()
@@ -51,7 +34,6 @@ def trx_encrypt(
     group_id: str,
     aes_key: bytes,
     data: Dict[str, Any] = None,
-    timestamp=None,
     private_key: bytes = None,
     age_pubkey=None,
     trx_id=None,
@@ -69,12 +51,11 @@ def trx_encrypt(
     pvtkey = eth_keys.keys.PrivateKey(private_key)
     sender_pubkey = private_key_to_pubkey(private_key)
 
-    timestamp = check_timestamp(timestamp)
     trx = {
         "TrxId": trx_id or str(uuid.uuid4()),
         "GroupId": group_id,
         "Data": encrypted,
-        "TimeStamp": timestamp,
+        "TimeStamp": int(time.time() * 1e9),
         "Version": "2.0.0",
         "SenderPubkey": sender_pubkey,
     }
