@@ -1,6 +1,4 @@
 import logging
-import time
-from typing import Union
 
 from quorum_mininode_py.api.base import BaseAPI
 from quorum_mininode_py.crypto.account import check_private_key

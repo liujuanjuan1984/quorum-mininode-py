@@ -61,11 +61,13 @@ class MiniNode:
 
     def __init__(self, seed_url: str, pvtkey=None, age_pvtkey=None):
         self.group = RumGroup(seed_url)
-        self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
-
         chain_url = self.get_best_http(self.group.chain_urls)
-        http = HttpRequest(chain_url["baseurl"] + "/api/v1", chain_url["jwt"])
-        self.api = LightNodeAPI(http, self.group, self.account)
+        if chain_url is None:
+            raise Exception("no available chain url")
+        self.http = HttpRequest(chain_url["baseurl"] + "/api/v1", chain_url["jwt"])
+
+        self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
+        self.api = LightNodeAPI(self.http, self.group, self.account)
 
     def get_best_http(self, chain_urls):
         headers = {"Content-Type": "application/json"}
@@ -82,3 +84,9 @@ class MiniNode:
             except Exception as e:
                 logger.warning("get_best_http error: %s", e)
         return best
+
+    def change_account(self, pvtkey, age_pvtkey=None):
+        age_pvtkey = age_pvtkey or self.account.age_pvtkey
+        if pvtkey != self.account.pvtkey or age_pvtkey != self.account.age_pvtkey:
+            self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
+            self.api = LightNodeAPI(self.http, self.group, self.account)

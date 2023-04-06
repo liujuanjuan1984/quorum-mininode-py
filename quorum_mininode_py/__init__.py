@@ -10,7 +10,7 @@ from quorum_mininode_py.crypto.account import (
 )
 from quorum_mininode_py.utils import decode_seed_url, update_seed_url
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __author__ = "liujuanjuan1984, zhangwm404"
 
 # Set default logging handler to avoid "No handler found" warnings.
