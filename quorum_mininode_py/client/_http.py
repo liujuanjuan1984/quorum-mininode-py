@@ -18,14 +18,16 @@ class HttpRequest:
         requests.adapters.DEFAULT_RETRIES = 5
         self.api_base = api_base
         self.session = requests.Session()
-        headers = {"Content-Type": "application/json"}
+        self.headers = {"Content-Type": "application/json"}
+        self.jwt_token = jwt_token
         if jwt_token:
-            headers.update({"Authorization": f"Bearer {jwt_token}"})
-        self.session.headers.update(headers)
+            self.headers.update({"Authorization": f"Bearer {jwt_token}"})
+        self.session.headers.update(self.headers)
 
         _no_proxy = os.getenv("NO_PROXY", "")
         if self.api_base not in _no_proxy:
             os.environ["NO_PROXY"] = ",".join([_no_proxy, self.api_base])
+        self.retry_count = 0
 
     def _request(
         self,
@@ -34,7 +36,17 @@ class HttpRequest:
         payload: dict = None,
     ):
         url = "".join([self.api_base, endpoint])
-        resp = self.session.request(method=method, url=url, json=payload)
+        if self.retry_count >= 3:
+            raise Exception("retry count >=3 , check your network")
+        try:
+            resp = self.session.request(method=method, url=url, json=payload)
+        except Exception as err:
+            logger.warning("request error: %s", err)
+            self.session = requests.Session()
+            self.session.headers.update(self.headers)
+            self.retry_count += 1
+            return self._request(method, endpoint, payload)
+        self.retry_count = 0
         logger.debug("payload %s", payload)
         return resp.json()
 

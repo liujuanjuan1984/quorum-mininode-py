@@ -2,5 +2,5 @@ requests
 eth_keys
 pyrage
 protobuf
-eth_account
+eth_account==0.5.8
 quorum_data_py

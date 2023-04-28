@@ -3,10 +3,10 @@ from dataclasses import dataclass
 
 import requests
 
-from quorum_mininode_py import utils
 from quorum_mininode_py.api import LightNodeAPI
 from quorum_mininode_py.client._http import HttpRequest
 from quorum_mininode_py.crypto import account as Account
+from quorum_mininode_py.utils.url import decode_seed_url
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,10 @@ class RumGroup:
     chain_urls: list = None
 
     def __init__(self, seed_url: str):
-        info = utils.decode_seed_url(seed_url)
+        try:
+            info = decode_seed_url(seed_url)
+        except KeyError as err:
+            raise ValueError(f"invalid seed_url: {err}") from err
         seed = info["seed"]
         self.seed = seed
         self.seed_url = seed_url
@@ -67,7 +70,7 @@ class MiniNode:
         self.http = HttpRequest(chain_url["baseurl"] + "/api/v1", chain_url["jwt"])
 
         self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
-        self.api = LightNodeAPI(self.http, self.group, self.account)
+        self.api = LightNodeAPI(self)
 
     def get_best_http(self, chain_urls):
         headers = {"Content-Type": "application/json"}
@@ -89,4 +92,4 @@ class MiniNode:
         age_pvtkey = age_pvtkey or self.account.age_pvtkey
         if pvtkey != self.account.pvtkey or age_pvtkey != self.account.age_pvtkey:
             self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
-            self.api = LightNodeAPI(self.http, self.group, self.account)
+            self.api = LightNodeAPI(self)

@@ -10,19 +10,51 @@ logger = logging.getLogger(__name__)
 class BaseAPI:
     """BaseAPI"""
 
-    def __init__(self, http: HttpRequest, group, account):
-        self._http = http
-        self.group_id = group.group_id
-        self._group = group
-        self._account = account
+    def __init__(self, client):
+        self._client = client
+        self._http = client.http
+        self.group_id = client.group.group_id
+        self._group = client.group
+        self._account = client.account
+        self._retry = 0
 
     def _get(self, endpoint: str, payload: dict = None):
         """api _get"""
-        return self._http.get(endpoint, payload)
+        if self._retry >= 3:
+            raise Exception("retry 3 times, check your network")
+        try:
+            resp = self._http.get(endpoint, payload)
+        except Exception as err:
+            logger.error("request failed: %s", err)
+            chain_url = self._client.get_best_http(self._client.group.chain_urls)
+            if chain_url is None:
+                raise Exception("no available chain url") from err
+            self._http = self._client.http = HttpRequest(
+                chain_url["baseurl"] + "/api/v1", chain_url["jwt"]
+            )
+            self._retry += 1
+            return self._get(endpoint, payload)
+        self._retry = 0
+        return resp
 
     def _post(self, endpoint: str, payload: dict = None):
         """api _post"""
-        return self._http.post(endpoint, payload)
+        if self._retry >= 3:
+            raise Exception("retry 3 times, check your network")
+        try:
+            resp = self._http.post(endpoint, payload)
+        except Exception as err:
+            logger.error("request failed: %s", err)
+            chain_url = self._client.get_best_http(self._client.group.chain_urls)
+            if chain_url is None:
+                raise Exception("no available chain url") from err
+            self._http = self._client.http = HttpRequest(
+                chain_url["baseurl"] + "/api/v1", chain_url["jwt"]
+            )
+            self._retry += 1
+            return self._post(endpoint, payload)
+        self._retry = 0
+        return resp
 
     def _get_trx(self, trx_id: str):
         return self._get(f"/trx/{self.group_id}/{trx_id}")
