@@ -6,6 +6,21 @@ from pyrage import decrypt, encrypt, passphrase, x25519
 logger = logging.getLogger(__name__)
 
 
+def create_age_keypair():
+    """create age private key"""
+    age_identity = x25519.Identity.generate()
+    age_pvtkey = str(age_identity)
+    age_pubkey = str(age_identity.to_public())
+    return age_pvtkey, age_pubkey
+
+
+def age_pvtkey_to_pubkey(age_pvtkey: str) -> str:
+    """age private key to public key"""
+    age_identity = x25519.Identity.from_str(age_pvtkey)
+    age_pubkey = str(age_identity.to_public())
+    return age_pubkey
+
+
 def age_encrypt(recipients: list, data: bytes) -> bytes:
     """recipients list of x25519.Recipient"""
     if not data:

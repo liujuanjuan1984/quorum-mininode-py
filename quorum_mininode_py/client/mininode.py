@@ -5,7 +5,8 @@ import requests
 
 from quorum_mininode_py.api import LightNodeAPI
 from quorum_mininode_py.client._http import HttpRequest
-from quorum_mininode_py.crypto import account as Account
+from quorum_mininode_py.crypto import account as eth_acc
+from quorum_mininode_py.crypto import age as age_acc
 from quorum_mininode_py.utils.url import decode_seed_url
 
 logger = logging.getLogger(__name__)
@@ -45,15 +46,15 @@ class RumAccount:
     def __init__(
         self, pvtkey: str = None, age_pvtkey: str = None, encryption_type: str = None
     ):
-        self.pvtkey = pvtkey or Account.create_private_key()
-        self.pubkey = Account.private_key_to_pubkey(self.pvtkey)
-        self.address = Account.public_key_to_address(self.pubkey)
+        self.pvtkey = pvtkey or eth_acc.create_pvtkey()
+        self.pubkey = eth_acc.pvtkey_to_pubkey(self.pvtkey)
+        self.address = eth_acc.pubkey_to_address(self.pubkey)
 
         if age_pvtkey:
             self.age_pvtkey = age_pvtkey
-            self.age_pubkey = Account.age_pvtkey_to_pubkey(age_pvtkey)
+            self.age_pubkey = age_acc.age_pvtkey_to_pubkey(age_pvtkey)
         elif (encryption_type or "").upper() == "PRIVATE":
-            self.age_pvtkey, self.age_pubkey = Account.create_age_keypair()
+            self.age_pvtkey, self.age_pubkey = age_acc.create_age_keypair()
         else:
             self.age_pvtkey = None
             self.age_pubkey = None

@@ -1,7 +1,7 @@
 import logging
 
 from quorum_mininode_py.api.base import BaseAPI
-from quorum_mininode_py.crypto.account import check_private_key
+from quorum_mininode_py.crypto.account import check_pvtkey
 from quorum_mininode_py.crypto.trx import trx_decrypt, trx_encrypt
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class LightNodeAPI(BaseAPI):
             self.group_id,
             self._group.aes_key,
             data,
-            check_private_key(self._account.pvtkey),
+            check_pvtkey(self._account.pvtkey),
             age_pubkey,
             trx_id,
         )

@@ -9,7 +9,6 @@ from typing import Any, Dict, Union
 import eth_keys
 from pyrage import x25519
 
-from quorum_mininode_py.crypto.account import private_key_to_pubkey
 from quorum_mininode_py.crypto.aes import aes_decrypt, aes_encrypt
 from quorum_mininode_py.crypto.age import age_decrypt, age_encrypt
 from quorum_mininode_py.proto import pbQuorum
@@ -48,8 +47,10 @@ def trx_encrypt(
     else:
         encrypted = age_encrypt(age_pubkey, data)
 
-    pvtkey = eth_keys.keys.PrivateKey(private_key)
-    sender_pubkey = private_key_to_pubkey(private_key)
+    account = eth_keys.keys.PrivateKey(private_key)
+    sender_pubkey = base64.urlsafe_b64encode(
+        account.public_key.to_compressed_bytes()
+    ).decode()
 
     trx = {
         "TrxId": trx_id or str(uuid.uuid4()),
@@ -63,7 +64,7 @@ def trx_encrypt(
     trx_without_sign_pb = pbQuorum.Trx(**trx)  # pylint: disable=no-member
     trx_without_sign_pb_bytes = trx_without_sign_pb.SerializeToString()
     trx_hash = hashlib.sha256(trx_without_sign_pb_bytes).digest()
-    signature = pvtkey.sign_msg_hash(trx_hash).to_bytes()
+    signature = account.sign_msg_hash(trx_hash).to_bytes()
     trx["SenderSign"] = signature
 
     for k, v in trx.items():
