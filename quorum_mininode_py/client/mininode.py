@@ -1,8 +1,6 @@
 import logging
 from dataclasses import dataclass
 
-import requests
-
 from quorum_mininode_py.api import LightNodeAPI
 from quorum_mininode_py.client._http import HttpRequest
 from quorum_mininode_py.crypto import account as eth_acc
@@ -65,29 +63,9 @@ class MiniNode:
 
     def __init__(self, seed_url: str, pvtkey=None, age_pvtkey=None):
         self.group = RumGroup(seed_url)
-        chain_url = self.get_best_http(self.group.chain_urls)
-        if chain_url is None:
-            raise Exception("no available chain url")
-        self.http = HttpRequest(chain_url["baseurl"] + "/api/v1", chain_url["jwt"])
-
+        self.http = HttpRequest(self.group.chain_urls or [])
         self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
         self.api = LightNodeAPI(self)
-
-    def get_best_http(self, chain_urls):
-        headers = {"Content-Type": "application/json"}
-        best = None
-        for chain_url in chain_urls:
-            jwt = chain_url["jwt"]
-            headers.update({"Authorization": f"Bearer {jwt}"})
-            url = chain_url["baseurl"] + f"/api/v1/node/{self.group.group_id}/info"
-            try:
-                response = requests.get(url, headers=headers, timeout=5)
-                if response.status_code == 200:
-                    best = chain_url
-                    break
-            except Exception as e:
-                logger.warning("get_best_http error: %s", e)
-        return best
 
     def change_account(self, pvtkey, age_pvtkey=None):
         age_pvtkey = age_pvtkey or self.account.age_pvtkey
