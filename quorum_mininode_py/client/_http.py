@@ -11,7 +11,9 @@ class HttpRequest:
 
     def __init__(
         self,
-        chain_urls: list,
+        api_base: str = None,
+        jwt_token: str = None,
+        chain_urls: list = None,
         timeout: int = 5,
         retries: int = 3,
     ):
@@ -20,6 +22,8 @@ class HttpRequest:
         chain_urls: list of dict of api_base and jwt_token
         """
         requests.adapters.DEFAULT_RETRIES = 5
+        if api_base:
+            chain_urls = [{"baseurl": api_base, "jwt": jwt_token}]
         self.chain_urls = chain_urls
         self.current_chain_url = 0
         self.session = requests.Session()
@@ -41,7 +45,7 @@ class HttpRequest:
         if jwt_token:
             self.headers.update({"Authorization": f"Bearer {jwt_token}"})
             self.session.headers.update(self.headers)
-        url = api_base + "/api/v1" + endpoint
+        url = api_base + endpoint
 
         _no_proxy = os.getenv("NO_PROXY", "")
         if api_base not in _no_proxy:

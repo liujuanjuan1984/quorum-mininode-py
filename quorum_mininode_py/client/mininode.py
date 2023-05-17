@@ -63,7 +63,7 @@ class MiniNode:
 
     def __init__(self, seed_url: str, pvtkey=None, age_pvtkey=None):
         self.group = RumGroup(seed_url)
-        self.http = HttpRequest(self.group.chain_urls or [])
+        self.http = HttpRequest(chain_urls=self.group.chain_urls or [])
         self.account = RumAccount(pvtkey, age_pvtkey, self.group.encryption_type)
         self.api = LightNodeAPI(self)
 
