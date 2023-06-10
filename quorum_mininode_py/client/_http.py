@@ -61,6 +61,7 @@ class HttpRequest:
                         timeout=self.timeout,
                         headers=self.headers,
                     )
+                    logger.debug("payload %s", payload)
                     response.raise_for_status()
                     return response.json()
                 except requests.exceptions.RequestException as err:
@@ -71,6 +72,7 @@ class HttpRequest:
             logging.warning(
                 "HTTP request error (endpoint %s}): %s", self.current_chain_url, err
             )
+            logger.debug("payload %s", payload)
             self.current_chain_url = (self.current_chain_url + 1) % len(self.chain_urls)
             return self._request(method, endpoint, payload)
         raise Exception("HTTP request error")

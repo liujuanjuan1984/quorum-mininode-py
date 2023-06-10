@@ -67,3 +67,7 @@ class BaseAPI:
 
     def _post_announce(self, payload: dict):
         return self._post(f"/api/v1/node/{self.group_id}/announce", payload)
+
+    def _get_encrypt_pubkeys(self):
+        """get the age pubkeys of private group"""
+        return self._get(f"/api/v1/node/getencryptpubkeys/{self.group_id}")

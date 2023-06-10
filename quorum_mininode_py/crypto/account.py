@@ -1,5 +1,6 @@
 import base64
 import logging
+import secrets
 from typing import Union
 
 import eth_keys
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def create_pvtkey() -> str:
     """create private key"""
-    acc = Account().create()
+    acc = Account().create(extra_entropy=secrets.token_bytes(32))
     private_key = encode_hex(acc.key)
     return private_key
 

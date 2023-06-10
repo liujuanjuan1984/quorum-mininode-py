@@ -2,7 +2,7 @@ import logging
 
 from quorum_mininode_py.api.base import BaseAPI
 from quorum_mininode_py.crypto.account import check_pvtkey
-from quorum_mininode_py.crypto.trx import trx_decrypt, trx_encrypt
+from quorum_mininode_py.crypto.trx import get_announce_param, trx_decrypt, trx_encrypt
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +16,11 @@ class LightNodeAPI(BaseAPI):
         trx_id: str = None,
     ):
         """post content to group"""
-        if self._group.encryption_type == "public":
-            age_pubkey = None
-        else:
-            age_pubkey = self._account.age_pubkey
         trx = trx_encrypt(
             self.group_id,
             self._group.aes_key,
             data,
             check_pvtkey(self._account.pvtkey),
-            age_pubkey,
             trx_id,
         )
         return super()._post_content(trx)
@@ -36,13 +31,7 @@ class LightNodeAPI(BaseAPI):
 
     def trx(self, trx_id: str):
         """get decrypted trx"""
-        if self._group.encryption_type == "public":
-            age_priv_key = None
-        else:
-            age_priv_key = self._account.age_privkey
-
-        trx = trx_decrypt(self._group.aes_key, age_priv_key, self.get_trx(trx_id))
-        return trx
+        return trx_decrypt(self._group.aes_key, self.get_trx(trx_id))
 
     def get_content(
         self,
@@ -64,18 +53,13 @@ class LightNodeAPI(BaseAPI):
             params["senders"] = senders
 
         encypted_trxs = super()._get_content(params)
-        if self._group.encryption_type.lower() == "public":
-            age_priv_key = None
-        else:
-            age_priv_key = self._account.age_privkey
-
         trxs = []
-        for i in encypted_trxs:
+        for trx in encypted_trxs:
             try:
-                i = trx_decrypt(self._group.aes_key, age_priv_key, i)
+                trx = trx_decrypt(self._group.aes_key, trx)
             except Exception as err:
                 logger.error(err)
-            trxs.append(i)
+            trxs.append(trx)
         return trxs
 
     def get_group_info(self):
@@ -121,6 +105,31 @@ class LightNodeAPI(BaseAPI):
         """get announced user"""
         return super()._get_announced_user()
 
-    def announce(self, payload: dict):  # TODO: to finish.
-        """post annonce to group"""
+    def announce(self, action: str, _type: str, memo: str = None):
+        """post annonce to group
+        action: str, one of [add, remove]
+        _type: str, one of [user, producer]
+        """
+        # only announce self as user will be success
+        payload = get_announce_param(
+            self._account.age_pubkey,
+            check_pvtkey(self._account.pvtkey),
+            self.group_id,
+            action,
+            _type,
+            memo or f"annonce as {_type}",
+        )
         return super()._post_announce(payload)
+
+    def announce_as_user(self):
+        """announce as user"""
+        return self.announce("add", "user")
+
+    def announce_as_producer(self):
+        """announce as producer"""
+        # lightnote can not announce as producer, return http 400
+        return self.announce("add", "producer")
+
+    def get_encrypt_pubkeys(self):
+        """get age pubkeys of private group"""
+        return super()._get_encryptpubkeys().get("keys")
