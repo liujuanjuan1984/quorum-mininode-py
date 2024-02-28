@@ -80,7 +80,6 @@ def get_announce_param(
     _type: str,
     memo: Union[str, None] = None,
 ) -> Dict[str, Dict[str, Any]]:
-
     item = pbQuorum.AnnounceItem()
     item.GroupId = group_id
     if _type == "user":

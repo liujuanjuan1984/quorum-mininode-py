@@ -4,3 +4,5 @@ protobuf
 eth_account>=0.8.0
 eth_keys
 quorum_data_py
+build
+twine

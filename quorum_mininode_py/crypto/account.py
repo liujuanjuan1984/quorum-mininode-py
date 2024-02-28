@@ -10,6 +10,14 @@ from eth_utils.hexadecimal import encode_hex
 logger = logging.getLogger(__name__)
 
 
+def create_keypair():
+    """create private key and public key"""
+    acc = Account().create(extra_entropy=secrets.token_bytes(32))
+    private_key = encode_hex(acc.key)
+    public_key = pvtkey_to_pubkey(private_key)
+    return private_key, public_key
+
+
 def create_pvtkey() -> str:
     """create private key"""
     acc = Account().create(extra_entropy=secrets.token_bytes(32))

@@ -38,7 +38,6 @@ class HttpRequest:
         endpoint: str,
         payload: dict = None,
     ):
-
         chain_url = self.chain_urls[self.current_chain_url]
         api_base = chain_url.get("baseurl")
         jwt_token = chain_url.get("jwt")

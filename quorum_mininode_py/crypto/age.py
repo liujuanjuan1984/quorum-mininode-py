@@ -100,3 +100,18 @@ def trx_age_decrypt(data: dict, identity: x25519.Identity):
     decrypted = age_decrypt(identity, base64.b64decode(content))
     rlt["content"] = json.loads(decrypted.decode())
     return rlt
+
+
+def data_encrypt(age_pubkeys: list, data: dict):
+    """把 dict 形式的 data 用一组 age 公钥加密"""
+    databytes = json.dumps(data).encode()
+    encrypted = age_encrypt(age_pubkeys, databytes)
+    encrypted_str = base64.b64encode(encrypted).decode()
+    return encrypted_str
+
+
+def data_decrypt(age_pvtkey, encrypted_str: str):
+    """把一组 age 公钥加密过的数据，用其中之一公钥对应的私钥解密"""
+    decrypted = age_decrypt(age_pvtkey, base64.b64decode(encrypted_str))
+    data = json.loads(decrypted.decode())
+    return data
